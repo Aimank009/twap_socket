@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Your WebSocket URL</title>
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .input-group {
+            margin: 30px 0;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            font-weight: 600;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .output {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            display: none;
+            border-left: 4px solid #4ade80;
+        }
+        .output.show {
+            display: block;
+        }
+        .url-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .url-box:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .copy-btn {
+            padding: 5px 15px;
+            font-size: 0.9em;
+            width: auto;
+            margin-top: 5px;
+            background: #4ade80;
+            color: white;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .status.success {
+            background: #4ade80;
+            color: white;
+        }
+        .status.error {
+            background: #ef4444;
+            color: white;
+        }
+        .status.testing {
+            background: #fbbf24;
+            color: white;
+        }
+        .steps {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .step {
+            margin: 15px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .step:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+            font-size: 1.5em;
+        }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Get Your WebSocket URL</h1>
+        <div class="subtitle">Test your Mercury TWAP Socket deployment</div>
+
+        <div class="steps">
+            <h3>📍 How to Find Your Railway URL:</h3>
+            <div class="step">Go to <a href="https://railway.app/dashboard" target="_blank" style="color: #4ade80;">Railway Dashboard</a></div>
+            <div class="step">Click on your <code>twap_socket</code> project</div>
+            <div class="step">Go to <strong>Settings</strong> → <strong>Networking</strong></div>
+            <div class="step">Copy the public domain (e.g., <code>twap-socket-production.up.railway.app</code>)</div>
+            <div class="step">Paste it below (without https://)</div>
+        </div>
+
+        <div class="input-group">
+            <label for="railwayUrl">🌐 Enter Your Railway URL:</label>
+            <input 
+                type="text" 
+                id="railwayUrl" 
+                placeholder="e.g., twap-socket-production.up.railway.app"
+                value="">
+        </div>
+
+        <button onclick="testDeployment()">🧪 Test Deployment & Get WebSocket URLs</button>
+
+        <div id="output" class="output">
+            <h3>✅ Your WebSocket URLs <span id="statusBadge"></span></h3>
+            
+            <div style="margin-top: 20px;">
+                <label><strong>📡 Price Feed WebSocket:</strong></label>
+                <div class="url-box" onclick="copyToClipboard('priceWs')">
+                    <div id="priceWs"></div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('priceWs')">📋 Copy Price WS URL</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <label><strong>🎯 Settlement Feed WebSocket:</strong></label>
+                <div class="url-box" onclick="copyToClipboard('settlementWs')">
+                    <div id="settlementWs"></div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('settlementWs')">📋 Copy Settlement WS URL</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <label><strong>💹 Current Price API:</strong></label>
+                <div class="url-box" onclick="copyToClipboard('priceApi')">
+                    <div id="priceApi"></div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('priceApi')">📋 Copy API URL</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <label><strong>🏥 Health Check:</strong></label>
+                <div class="url-box" onclick="copyToClipboard('healthCheck')">
+                    <div id="healthCheck"></div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('healthCheck')">📋 Copy Health URL</button>
+            </div>
+
+            <div id="testResults" style="margin-top: 30px;"></div>
+
+            <div style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 10px;">
+                <h4>📝 Use in Your Frontend:</h4>
+                <pre style="overflow-x: auto; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px;"><code id="frontendCode"></code></pre>
+                <button class="copy-btn" onclick="copyToClipboard('frontendCode')">📋 Copy Code</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testDeployment() {
+            const url = document.getElementById('railwayUrl').value.trim();
+            
+            if (!url) {
+                alert('Please enter your Railway URL first!');
+                return;
+            }
+
+            // Clean up the URL
+            const cleanUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+            // Show output section
+            const output = document.getElementById('output');
+            output.classList.add('show');
+
+            // Set the URLs
+            document.getElementById('priceWs').textContent = `wss://${cleanUrl}/ws/prices`;
+            document.getElementById('settlementWs').textContent = `wss://${cleanUrl}/ws/settlements`;
+            document.getElementById('priceApi').textContent = `https://${cleanUrl}/api/price`;
+            document.getElementById('healthCheck').textContent = `https://${cleanUrl}/`;
+
+            // Set frontend code
+            const frontendCode = `// Mercury Frontend - TWAP Socket Configuration
+
+const TWAP_SOCKET_URL = 'wss://${cleanUrl}';
+
+// Connect to Price Feed
+const priceWs = new WebSocket(\`\${TWAP_SOCKET_URL}/ws/prices\`);
+
+priceWs.onopen = () => {
+  console.log('✅ Connected to TWAP price feed');
+};
+
+priceWs.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Price Update:', data.price_usd);
+  // Update your UI here
+};
+
+// Connect to Settlement Feed
+const settlementWs = new WebSocket(\`\${TWAP_SOCKET_URL}/ws/settlements\`);
+
+settlementWs.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'settlement') {
+    console.log('Settlement:', data.timeperiod_id, data.price_usd);
+    // Handle settlement in your UI
+  }
+};`;
+
+            document.getElementById('frontendCode').textContent = frontendCode;
+
+            // Test the health endpoint
+            const statusBadge = document.getElementById('statusBadge');
+            statusBadge.innerHTML = '<span class="status testing">Testing...</span>';
+
+            fetch(`https://${cleanUrl}/`)
+                .then(response => response.json())
+                .then(data => {
+                    statusBadge.innerHTML = '<span class="status success">✅ Online</span>';
+                    
+                    const results = document.getElementById('testResults');
+                    results.innerHTML = `
+                        <div style="background: rgba(74, 222, 128, 0.2); padding: 15px; border-radius: 8px; border-left: 4px solid #4ade80;">
+                            <strong>🎉 Deployment is Live!</strong><br><br>
+                            <strong>Status:</strong> ${data.status}<br>
+                            <strong>Service:</strong> ${data.service}<br>
+                            <strong>Uptime:</strong> ${data.uptime ? data.uptime.toFixed(2) + 's' : 'N/A'}<br>
+                            <strong>Connected to Hyperliquid:</strong> ${data.connected_to_hyperliquid ? '✅ Yes' : '❌ No'}<br>
+                            ${data.current_price ? `<strong>Current HYPE Price:</strong> $${data.current_price.price_usd}` : ''}
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    statusBadge.innerHTML = '<span class="status error">❌ Offline</span>';
+                    
+                    const results = document.getElementById('testResults');
+                    results.innerHTML = `
+                        <div style="background: rgba(239, 68, 68, 0.2); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
+                            <strong>⚠️ Cannot Connect</strong><br><br>
+                            Please check:<br>
+                            • Is your Railway app deployed?<br>
+                            • Is the URL correct?<br>
+                            • Check Railway logs for errors<br><br>
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                    `;
+                });
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Show feedback
+                const originalText = element.innerHTML;
+                element.innerHTML = '✅ Copied!';
+                element.style.background = 'rgba(74, 222, 128, 0.3)';
+                
+                setTimeout(() => {
+                    element.innerHTML = originalText;
+                    element.style.background = '';
+                }, 1500);
+            });
+        }
+
+        // Auto-fill if URL is in localStorage
+        window.onload = () => {
+            const savedUrl = localStorage.getItem('railwayUrl');
+            if (savedUrl) {
+                document.getElementById('railwayUrl').value = savedUrl;
+            }
+        };
+
+        // Save URL to localStorage when changed
+        document.getElementById('railwayUrl').addEventListener('change', (e) => {
+            localStorage.setItem('railwayUrl', e.target.value);
+        });
+    </script>
+</body>
+</html>

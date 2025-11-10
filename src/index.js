@@ -19,9 +19,20 @@ app.use(express.json());
 // Create HTTP server
 const server = http.createServer(app);
 
-// Create WebSocket server
-const wss = new WebSocket.Server({ server, path: '/ws/prices' });
-const settlementWss = new WebSocket.Server({ server, path: '/ws/settlements' });
+// Create WebSocket server with proper configuration for Railway/proxies
+const wss = new WebSocket.Server({ 
+  server, 
+  path: '/ws/prices',
+  perMessageDeflate: false, // Disable compression to avoid issues with proxies
+  clientTracking: true
+});
+
+const settlementWss = new WebSocket.Server({ 
+  server, 
+  path: '/ws/settlements',
+  perMessageDeflate: false, // Disable compression to avoid issues with proxies
+  clientTracking: true
+});
 
 // Initialize TWAP Oracle
 const oracle = new TWAPOracle(HYPERLIQUID_WS_URL);

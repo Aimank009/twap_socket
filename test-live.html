@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ TWAP Socket Test - LIVE</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 1.3em;
+            margin-bottom: 30px;
+        }
+        .url-banner {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+        .url-banner h2 {
+            margin-bottom: 15px;
+        }
+        .url-box {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .panel h2 {
+            color: white;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .status {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .connected {
+            background: #4ade80;
+            color: white;
+        }
+        .disconnected {
+            background: #ef4444;
+            color: white;
+        }
+        .big-number {
+            font-size: 3em;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            margin: 30px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            color: white;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+        .log {
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .log-entry {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+            color: white;
+        }
+        .log-entry.settlement {
+            border-left-color: #ff00ff;
+            background: rgba(255, 0, 255, 0.1);
+        }
+        button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .test-results {
+            background: rgba(74, 222, 128, 0.2);
+            border: 2px solid #4ade80;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            color: white;
+        }
+        .test-results h3 {
+            margin-bottom: 15px;
+        }
+        .checkmark {
+            color: #4ade80;
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ TWAP Socket - LIVE TEST</h1>
+        <div class="subtitle">Real-time WebSocket Testing</div>
+
+        <div class="url-banner">
+            <h2>🚀 Your Deployment URLs:</h2>
+            <div class="url-box">https://twapsocket-production.up.railway.app</div>
+            <div style="margin-top: 15px;">
+                <strong>Price WS:</strong> wss://twapsocket-production.up.railway.app/ws/prices<br>
+                <strong>Settlement WS:</strong> wss://twapsocket-production.up.railway.app/ws/settlements
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Price Feed Panel -->
+            <div class="panel">
+                <h2>
+                    📡 Price Feed
+                    <span id="priceStatus" class="status disconnected">Connecting...</span>
+                </h2>
+                
+                <div class="big-number" id="currentPrice">$--</div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Raw Price</div>
+                        <div class="stat-value" id="rawPrice">--</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Updates</div>
+                        <div class="stat-value" id="updateCount">0</div>
+                    </div>
+                </div>
+                
+                <div class="log" id="priceLog"></div>
+            </div>
+
+            <!-- Settlement Feed Panel -->
+            <div class="panel">
+                <h2>
+                    🎯 Settlement Feed
+                    <span id="settlementStatus" class="status disconnected">Connecting...</span>
+                </h2>
+                
+                <div class="big-number" id="lastTwap">$--</div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Period ID</div>
+                        <div class="stat-value" id="periodId">--</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Settlements</div>
+                        <div class="stat-value" id="settlementCount">0</div>
+                    </div>
+                </div>
+                
+                <div class="log" id="settlementLog"></div>
+            </div>
+        </div>
+
+        <div id="testResults" class="test-results" style="display: none;">
+            <h3>🎉 Test Results:</h3>
+            <div id="testStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        const WS_URL = 'wss://twapsocket-production.up.railway.app';
+        
+        let priceWs, settlementWs;
+        let priceUpdateCount = 0;
+        let settlementCount = 0;
+        let testsPassed = {
+            priceConnection: false,
+            priceData: false,
+            settlementConnection: false,
+            settlementData: false
+        };
+
+        function connectPriceFeed() {
+            priceWs = new WebSocket(`${WS_URL}/ws/prices`);
+            
+            priceWs.onopen = () => {
+                document.getElementById('priceStatus').className = 'status connected';
+                document.getElementById('priceStatus').textContent = '✅ Connected';
+                testsPassed.priceConnection = true;
+                addLog('priceLog', '✅ Connected to price feed');
+                updateTestResults();
+            };
+            
+            priceWs.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'connected') {
+                    addLog('priceLog', `📡 ${data.message}`);
+                } else if (data.price_usd) {
+                    priceUpdateCount++;
+                    testsPassed.priceData = true;
+                    
+                    document.getElementById('currentPrice').textContent = `$${data.price_usd.toFixed(6)}`;
+                    document.getElementById('rawPrice').textContent = data.price_raw.toLocaleString();
+                    document.getElementById('updateCount').textContent = priceUpdateCount;
+                    
+                    const time = new Date(data.timestamp * 1000).toLocaleTimeString();
+                    addLog('priceLog', `${time} | $${data.price_usd.toFixed(6)}`);
+                    
+                    updateTestResults();
+                }
+            };
+            
+            priceWs.onerror = (error) => {
+                addLog('priceLog', '❌ Connection error');
+                document.getElementById('priceStatus').className = 'status disconnected';
+                document.getElementById('priceStatus').textContent = '❌ Error';
+            };
+            
+            priceWs.onclose = () => {
+                document.getElementById('priceStatus').className = 'status disconnected';
+                document.getElementById('priceStatus').textContent = '⚠️ Disconnected';
+                addLog('priceLog', '⚠️ Connection closed');
+            };
+        }
+
+        function connectSettlementFeed() {
+            settlementWs = new WebSocket(`${WS_URL}/ws/settlements`);
+            
+            settlementWs.onopen = () => {
+                document.getElementById('settlementStatus').className = 'status connected';
+                document.getElementById('settlementStatus').textContent = '✅ Connected';
+                testsPassed.settlementConnection = true;
+                addLog('settlementLog', '✅ Connected to settlement feed', true);
+                updateTestResults();
+            };
+            
+            settlementWs.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'connected') {
+                    addLog('settlementLog', `🎯 ${data.message}`, true);
+                } else if (data.type === 'settlement') {
+                    settlementCount++;
+                    testsPassed.settlementData = true;
+                    
+                    document.getElementById('lastTwap').textContent = `$${data.price_usd}`;
+                    document.getElementById('periodId').textContent = data.timeperiod_id;
+                    document.getElementById('settlementCount').textContent = settlementCount;
+                    
+                    const time = new Date(data.timestamp * 1000).toLocaleTimeString();
+                    addLog('settlementLog', `${time} | Period: ${data.timeperiod_id} | TWAP: $${data.price_usd}`, true);
+                    
+                    updateTestResults();
+                }
+            };
+            
+            settlementWs.onerror = (error) => {
+                addLog('settlementLog', '❌ Connection error', true);
+                document.getElementById('settlementStatus').className = 'status disconnected';
+                document.getElementById('settlementStatus').textContent = '❌ Error';
+            };
+            
+            settlementWs.onclose = () => {
+                document.getElementById('settlementStatus').className = 'status disconnected';
+                document.getElementById('settlementStatus').textContent = '⚠️ Disconnected';
+                addLog('settlementLog', '⚠️ Connection closed', true);
+            };
+        }
+
+        function addLog(logId, message, isSettlement = false) {
+            const log = document.getElementById(logId);
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${isSettlement ? 'settlement' : ''}`;
+            entry.textContent = message;
+            log.insertBefore(entry, log.firstChild);
+            
+            // Keep only last 20 entries
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function updateTestResults() {
+            const allPassed = Object.values(testsPassed).every(v => v);
+            const resultsDiv = document.getElementById('testResults');
+            const statusDiv = document.getElementById('testStatus');
+            
+            if (allPassed) {
+                resultsDiv.style.display = 'block';
+                statusDiv.innerHTML = `
+                    <div><span class="checkmark">✅</span> Price WebSocket Connected</div>
+                    <div><span class="checkmark">✅</span> Price Data Received (${priceUpdateCount} updates)</div>
+                    <div><span class="checkmark">✅</span> Settlement WebSocket Connected</div>
+                    <div><span class="checkmark">✅</span> Settlement Data Received (${settlementCount} settlements)</div>
+                    <hr style="margin: 15px 0; border-color: rgba(255,255,255,0.3);">
+                    <h4>🎉 ALL TESTS PASSED! Your TWAP Socket is working perfectly!</h4>
+                `;
+            } else if (testsPassed.priceConnection || testsPassed.settlementConnection) {
+                resultsDiv.style.display = 'block';
+                statusDiv.innerHTML = `
+                    <div>${testsPassed.priceConnection ? '<span class="checkmark">✅</span>' : '⏳'} Price WebSocket ${testsPassed.priceConnection ? 'Connected' : 'Connecting...'}</div>
+                    <div>${testsPassed.priceData ? '<span class="checkmark">✅</span>' : '⏳'} Price Data ${testsPassed.priceData ? `Received (${priceUpdateCount} updates)` : 'Waiting...'}</div>
+                    <div>${testsPassed.settlementConnection ? '<span class="checkmark">✅</span>' : '⏳'} Settlement WebSocket ${testsPassed.settlementConnection ? 'Connected' : 'Connecting...'}</div>
+                    <div>${testsPassed.settlementData ? '<span class="checkmark">✅</span>' : '⏳'} Settlement Data ${testsPassed.settlementData ? `Received (${settlementCount} settlements)` : 'Waiting for next 5-sec interval...'}</div>
+                `;
+            }
+        }
+
+        // Auto-connect on load
+        window.onload = () => {
+            connectPriceFeed();
+            connectSettlementFeed();
+        };
+    </script>
+</body>
+</html>
