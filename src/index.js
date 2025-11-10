@@ -84,49 +84,71 @@ app.get('/api/twap/:timeperiodId', (req, res) => {
 // WebSocket connection handler for price feed
 wss.on('connection', (ws, req) => {
   priceClientCount++;
-  console.log(`📡 New price client connected (total: ${priceClientCount})`);
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  console.log(`📡 New price client connected from ${clientIp} (total: ${priceClientCount})`);
+
+  // Set up ping/pong for connection keep-alive
+  ws.isAlive = true;
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
 
   // Send welcome message
-  ws.send(JSON.stringify({
-    type: 'connected',
-    message: 'Connected to Mercury TWAP price feed',
-    timestamp: Math.floor(Date.now() / 1000)
-  }));
+  try {
+    ws.send(JSON.stringify({
+      type: 'connected',
+      message: 'Connected to Mercury TWAP price feed',
+      timestamp: Math.floor(Date.now() / 1000)
+    }));
 
-  // Send current price immediately
-  const currentPrice = oracle.getCurrentPrice();
-  if (currentPrice) {
-    ws.send(JSON.stringify(currentPrice));
+    // Send current price immediately
+    const currentPrice = oracle.getCurrentPrice();
+    if (currentPrice) {
+      ws.send(JSON.stringify(currentPrice));
+    }
+  } catch (error) {
+    console.error('Error sending initial message:', error);
   }
 
-  ws.on('close', () => {
+  ws.on('close', (code, reason) => {
     priceClientCount--;
-    console.log(`📡 Price client disconnected (total: ${priceClientCount})`);
+    console.log(`📡 Price client disconnected (code: ${code}, reason: ${reason}) (total: ${priceClientCount})`);
   });
 
   ws.on('error', (error) => {
-    console.error('Price WebSocket error:', error);
+    console.error('Price WebSocket error:', error.message);
   });
 });
 
 // WebSocket connection handler for settlement feed
 settlementWss.on('connection', (ws, req) => {
   settlementClientCount++;
-  console.log(`🎯 New settlement client connected (total: ${settlementClientCount})`);
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  console.log(`🎯 New settlement client connected from ${clientIp} (total: ${settlementClientCount})`);
 
-  ws.send(JSON.stringify({
-    type: 'connected',
-    message: 'Connected to settlement feed',
-    timestamp: Math.floor(Date.now() / 1000)
-  }));
+  // Set up ping/pong for connection keep-alive
+  ws.isAlive = true;
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
 
-  ws.on('close', () => {
+  try {
+    ws.send(JSON.stringify({
+      type: 'connected',
+      message: 'Connected to settlement feed',
+      timestamp: Math.floor(Date.now() / 1000)
+    }));
+  } catch (error) {
+    console.error('Error sending initial settlement message:', error);
+  }
+
+  ws.on('close', (code, reason) => {
     settlementClientCount--;
-    console.log(`🎯 Settlement client disconnected (total: ${settlementClientCount})`);
+    console.log(`🎯 Settlement client disconnected (code: ${code}, reason: ${reason}) (total: ${settlementClientCount})`);
   });
 
   ws.on('error', (error) => {
-    console.error('Settlement WebSocket error:', error);
+    console.error('Settlement WebSocket error:', error.message);
   });
 });
 
@@ -145,11 +167,34 @@ function broadcastPrice() {
     const message = JSON.stringify(price);
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
+        try {
+          client.send(message);
+        } catch (error) {
+          console.error('Error broadcasting price:', error.message);
+        }
       }
     });
   }
 }
+
+// Heartbeat to keep connections alive
+const heartbeatInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) {
+      return ws.terminate();
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+  
+  settlementWss.clients.forEach((ws) => {
+    if (ws.isAlive === false) {
+      return ws.terminate();
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000); // Every 30 seconds
 
 // Settlement task - runs every grid interval
 function settlementTask() {
