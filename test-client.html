@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercury TWAP Socket Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0a0e27;
+            color: #00ff88;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: #1a1e3f;
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+        }
+        h2 {
+            color: #ff00ff;
+            border-bottom: 2px solid #ff00ff;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .connected {
+            background: #004d00;
+            border: 2px solid #00ff00;
+        }
+        .disconnected {
+            background: #4d0000;
+            border: 2px solid #ff0000;
+        }
+        .price-display {
+            font-size: 2em;
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #0a0e27;
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+        }
+        .log-entry {
+            padding: 5px;
+            margin: 3px 0;
+            background: #0a0e27;
+            border-left: 3px solid #00ff88;
+            font-size: 0.9em;
+        }
+        .settlement-entry {
+            border-left-color: #ff00ff;
+        }
+        #priceLog, #settlementLog {
+            height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        button {
+            background: #00ff88;
+            color: #0a0e27;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00cc66;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .stat-box {
+            background: #0a0e27;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.8em;
+        }
+        .stat-value {
+            font-size: 1.5em;
+            color: #00ff88;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Mercury TWAP Socket Test Client</h1>
+    
+    <div class="container">
+        <!-- Price Feed Panel -->
+        <div class="panel">
+            <h2>📡 Price Feed</h2>
+            <div id="priceStatus" class="status disconnected">❌ Disconnected</div>
+            <button onclick="connectPrice()">Connect Price Feed</button>
+            <button onclick="disconnectPrice()">Disconnect</button>
+            
+            <div class="price-display">
+                <div class="stat-label">Current Price</div>
+                <div id="currentPrice" class="stat-value">--</div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-label">Raw Price</div>
+                    <div id="rawPrice" class="stat-value">--</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Updates</div>
+                    <div id="updateCount" class="stat-value">0</div>
+                </div>
+            </div>
+            
+            <div id="priceLog"></div>
+        </div>
+
+        <!-- Settlement Feed Panel -->
+        <div class="panel">
+            <h2>🎯 Settlement Feed</h2>
+            <div id="settlementStatus" class="status disconnected">❌ Disconnected</div>
+            <button onclick="connectSettlement()">Connect Settlement Feed</button>
+            <button onclick="disconnectSettlement()">Disconnect</button>
+            
+            <div class="price-display">
+                <div class="stat-label">Last TWAP</div>
+                <div id="lastTwap" class="stat-value">--</div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-label">Period ID</div>
+                    <div id="periodId" class="stat-value">--</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Settlements</div>
+                    <div id="settlementCount" class="stat-value">0</div>
+                </div>
+            </div>
+            
+            <div id="settlementLog"></div>
+        </div>
+    </div>
+
+    <script>
+        let priceWs = null;
+        let settlementWs = null;
+        let priceUpdateCount = 0;
+        let settlementCount = 0;
+        const maxLogEntries = 50;
+
+        const WS_URL = 'ws://localhost:8080';
+
+        function connectPrice() {
+            if (priceWs) {
+                priceWs.close();
+            }
+
+            priceWs = new WebSocket(`${WS_URL}/ws/prices`);
+
+            priceWs.onopen = () => {
+                updateStatus('priceStatus', true);
+                addLog('priceLog', '✅ Connected to price feed', false);
+            };
+
+            priceWs.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'connected') {
+                        addLog('priceLog', `📡 ${data.message}`, false);
+                        return;
+                    }
+
+                    priceUpdateCount++;
+                    document.getElementById('currentPrice').textContent = `$${data.price_usd.toFixed(6)}`;
+                    document.getElementById('rawPrice').textContent = data.price_raw;
+                    document.getElementById('updateCount').textContent = priceUpdateCount;
+
+                    const time = new Date(data.timestamp * 1000).toLocaleTimeString();
+                    addLog('priceLog', `${time} | $${data.price_usd.toFixed(6)} (${data.price_raw})`, false);
+                } catch (err) {
+                    console.error('Error parsing price data:', err);
+                }
+            };
+
+            priceWs.onerror = (error) => {
+                addLog('priceLog', `❌ Error: ${error.message}`, false);
+            };
+
+            priceWs.onclose = () => {
+                updateStatus('priceStatus', false);
+                addLog('priceLog', '⚠️ Disconnected from price feed', false);
+            };
+        }
+
+        function disconnectPrice() {
+            if (priceWs) {
+                priceWs.close();
+                priceWs = null;
+            }
+        }
+
+        function connectSettlement() {
+            if (settlementWs) {
+                settlementWs.close();
+            }
+
+            settlementWs = new WebSocket(`${WS_URL}/ws/settlements`);
+
+            settlementWs.onopen = () => {
+                updateStatus('settlementStatus', true);
+                addLog('settlementLog', '✅ Connected to settlement feed', true);
+            };
+
+            settlementWs.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'connected') {
+                        addLog('settlementLog', `🎯 ${data.message}`, true);
+                        return;
+                    }
+
+                    if (data.type === 'settlement') {
+                        settlementCount++;
+                        document.getElementById('lastTwap').textContent = `$${data.price_usd}`;
+                        document.getElementById('periodId').textContent = data.timeperiod_id;
+                        document.getElementById('settlementCount').textContent = settlementCount;
+
+                        const time = new Date(data.timestamp * 1000).toLocaleTimeString();
+                        addLog('settlementLog', `${time} | Period: ${data.timeperiod_id} | TWAP: $${data.price_usd}`, true);
+                    }
+                } catch (err) {
+                    console.error('Error parsing settlement data:', err);
+                }
+            };
+
+            settlementWs.onerror = (error) => {
+                addLog('settlementLog', `❌ Error: ${error.message}`, true);
+            };
+
+            settlementWs.onclose = () => {
+                updateStatus('settlementStatus', false);
+                addLog('settlementLog', '⚠️ Disconnected from settlement feed', true);
+            };
+        }
+
+        function disconnectSettlement() {
+            if (settlementWs) {
+                settlementWs.close();
+                settlementWs = null;
+            }
+        }
+
+        function updateStatus(elementId, connected) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.className = `status ${connected ? 'connected' : 'disconnected'}`;
+            statusEl.textContent = connected ? '✅ Connected' : '❌ Disconnected';
+        }
+
+        function addLog(logId, message, isSettlement) {
+            const logEl = document.getElementById(logId);
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${isSettlement ? 'settlement-entry' : ''}`;
+            entry.textContent = message;
+            
+            logEl.insertBefore(entry, logEl.firstChild);
+            
+            // Keep only recent entries
+            while (logEl.children.length > maxLogEntries) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+
+        // Auto-connect on page load
+        window.onload = () => {
+            connectPrice();
+            connectSettlement();
+        };
+
+        // Cleanup on page unload
+        window.onbeforeunload = () => {
+            disconnectPrice();
+            disconnectSettlement();
+        };
+    </script>
+</body>
+</html>
