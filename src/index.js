@@ -21,17 +21,32 @@ const server = http.createServer(app);
 
 // Create WebSocket server with proper configuration for Railway/proxies
 const wss = new WebSocket.Server({ 
-  server, 
-  path: '/ws/prices',
+  noServer: true,  // Use noServer mode to handle upgrade manually
   perMessageDeflate: false, // Disable compression to avoid issues with proxies
   clientTracking: true
 });
 
 const settlementWss = new WebSocket.Server({ 
-  server, 
-  path: '/ws/settlements',
+  noServer: true,  // Use noServer mode to handle upgrade manually
   perMessageDeflate: false, // Disable compression to avoid issues with proxies
   clientTracking: true
+});
+
+// Handle WebSocket upgrade manually for better proxy compatibility
+server.on('upgrade', (request, socket, head) => {
+  const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
+  
+  if (pathname === '/ws/prices') {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  } else if (pathname === '/ws/settlements') {
+    settlementWss.handleUpgrade(request, socket, head, (ws) => {
+      settlementWss.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
 });
 
 // Initialize TWAP Oracle
